@@ -3,13 +3,13 @@ Set of tools written in python for Magento 1 community and entreprise used in pr
 
 # Install
 
-1. Unzip/copy all scripts in the magento_root/shell/ subdirectory
-1. edit shell/pylib/__init__.py file and adapt your configuration at the top (there is no need to put any of the DB details, the scripts will look for them in Magento local.xml directly).
-1. in a shell, go to shell/ subdirectory and fire any scripts you like
+1. Unzip/copy all scripts in the `{magento_root}/shell/` subdirectory
+1. edit `shell/pylib/__init__.py` file and adapt your configuration at the top (there is no need to put any of the DB details, the scripts will look for them in Magento local.xml directly).
+1. in a shell, go to `shell/` subdirectory and fire any scripts you like
 
 # How to use
 
-All scripts be fired without any arguments will **not** perform anything but give you a small help on how to use them which means if you dont know or remember how a script work, simply run it without any parameter is safe and will not break anything.
+All scripts be fired without any arguments will **not** perform anything but give you a small help on how to use them which means if you dont know or remember how a script work, _simply running it without any parameter is safe and will not break anything_.
 
 # List of Scripts
 
