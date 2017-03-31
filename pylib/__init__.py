@@ -4,7 +4,8 @@
 # Configuration to adapt to your environment
 
 magentoServerRoot = '/var/local/httpd/magento/'
-fromEmail = 'root@arluison.com'
+fromEmail         = 'root@arluison.com'
+defaultToEmail    = 'root@arluison.com'
 environments = {
                  'server'  : 
                   {
@@ -18,6 +19,7 @@ environments = {
                     '2.2.2.2'   : 'PROD'
                   }
   }
+slackHook = [ None ]
 
 # End of configuration
 
@@ -42,13 +44,13 @@ ttycolors = {
   'yellow': '33',
 }
 
-mailTo = [ None ]
-slackHook = [ None ]
-
 def _stdPickleFile():
+  '''hidden function not to be used directly, this will return the default naming to save
+  the pickle file'''
   return dirname(realpath(__file__)) + '/../../var/tmp/' + basename(sys.argv[0]) + '.pck'
 
 def loadPck(empty = {}, fileName = None):
+  '''to load persistent data at the beginning of the script'''
   if not fileName:
     fileName = _stdPickleFile()
   try:
@@ -57,11 +59,13 @@ def loadPck(empty = {}, fileName = None):
     return empty
 
 def savePck(data = {}, fileName = None):
+  '''to save persistent data at the end of the script'''
   if not fileName:
     fileName = _stdPickleFile()
   pickle.dump(data, open(fileName, 'w'))
 
 def getEnvironment():
+  '''utility to get a nice naming of the environment the script is executed : PROD, TEST etc...'''
   envs = environments['server'].keys()
   host = gethostname()
   for e in envs:
@@ -70,17 +74,22 @@ def getEnvironment():
   return environments['server']['undefined']
 
 def str2time(t):
+  ''' in : struct_time
+     out : string'''
   if type(t) is time.struct_time:
     return t
   if type(t) is str:
     return time.strptime(t, "%Y-%m-%d %H:%M:%S"[0:len(t)-2])
 
 def time2str(t):
+  '''opposite of str2time 
+     in : string %Y-%m-%d %H:%M:%S
+    out : struct_time'''
   return time.strftime("%Y-%m-%d %H:%M:%S", t)
 
 def local2utc(t):
-  """Make sure that the dst flag is -1 -- this tells mktime to take daylight
-  savings into account"""
+  '''Make sure that the dst flag is -1 -- this tells mktime to take daylight
+  savings into account'''
   secs = time.mktime(str2time(t))
   return time.gmtime(secs)
 
@@ -98,6 +107,15 @@ def yesterday(rge = 0):
   return daySlip(1, rge)
 
 def daySlip(decal = 1, rge = 0):
+  '''will return a SQL standard %Y-%m-%d %H:%M:%S string of a day in the past
+     decal is the number of days to remove to today
+     rge is either :
+       0     = default, returns only one string
+       'sql' = returns sql statement BETWEEN with the period between 
+               the two midnights of the selected day
+       1     = (or anything else) will return 2 strings without the 
+               sql BETWEEN statement.
+  '''
   s = (date.today() - timedelta(days = decal)).strftime('%Y-%m-%d')
   if not rge:
     return s
@@ -128,12 +146,13 @@ def runShell(cmd):
   return runSubProcess(cmd, shell = True)
 
 def getUrlContent(url):
-  #print url
+  '''get content of a page or document from url'''
   with closing(urllib.urlopen(url)) as f:
     c = f.read()
   return c
 
 def isHuman():
+  '''returns True if the script is executed by a tty therefore a human'''
   return sys.stdin.isatty()
 
 def totty(chain, color, bold = 0):
@@ -181,23 +200,23 @@ def ask(what, answers = None):
       if c == a: return c
   return None
 
-def MAILTO(chain): # or list
-  mailTo[0] = chain
-
 def sendSlack(text, icon = ':rocket:', username = None, channel = '#general'):
   if not slackHook[0]:
-    slackHook[0] = MagentoConfig().get('slack_hook')
+    try:
+      slackHook[0] = MagentoConfig(silent = True).get('slack_hook')
+    except:
+      pass
+  if not slackHook[0]:
+    print 'Warning, sendSlack used but no hook found in config file or python script'
+    return
   if not username:
     username = getEnvironment() + '-bot'
   cmd = '/usr/bin/curl -X POST --data-urlencode \'payload={"channel": "' + channel + '", "username": "' + username + '", "text": "' + text + '", "icon_emoji": "' + icon + '"}\' ' + slackHook[0] + ' -o /dev/null -s'
-  if slackHook[0]:
-    system(cmd)
-  else:
-    print 'Warning, sendSlack used but no hook found in config file or python script'
+  system(cmd)
 
 def sendMail(plaintext = None, html = None, emails = None, subject = 'Script failed ' + sys.argv[0].split('/')[-1], encoding = 'utf-8', attach = None):
   if emails == None:
-    emails = mailTo[0]
+    emails = defaultToEmail
   if emails == None:
     raise ValueError, 'trying to send a mail but no recipient is configured either in the function or at the top of the script'
   if type(emails) is not list and type(emails) is not tuple:
@@ -260,6 +279,7 @@ def inverseDict(d):
   return dict(map(reversed, d.iteritems()))
 
 class MagentoConfig():
+  '''Class to get magento configuration parameters'''
   __shared_state = {} # borg effect
    
   def __init__(self, localxml = None, silent = False):

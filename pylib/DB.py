@@ -21,6 +21,7 @@ class Database():
   def __init__(self, utf8 = False, localxml = None, silent = False):
     # Find PROD / PreProd database
     mag = MagentoConfig(localxml, silent)
+    self.config = mag
     
     self.server = mag.get('host')
     if self.server == 'mydb':
@@ -140,6 +141,7 @@ class Database():
     return ret
   
   def query(self, sql):
+    sql = sql.replace('PREFIX_', self.prefix)
     self.lastSql = sql
     if isinstance(sql, unicode):
       sql = sql.encode('utf-8')
